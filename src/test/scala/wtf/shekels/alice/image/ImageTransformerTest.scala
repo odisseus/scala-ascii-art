@@ -24,4 +24,20 @@ class ImageTransformerTest extends FlatSpec with Matchers {
     result shouldBe expectedResult.mkString
   }
 
+  it should "correctly process image dimension that aren't divisble by compression factor" in {
+    // Given
+    val chars = "."
+    val alphabet = new Alphabet(chars, "Monospace")
+    val sourcePath = getClass.getResource("/9x9black.png").getPath
+
+    // When
+    val imageTransformer = new ImageTransformer(path = sourcePath, compressionFactor = 8, alphabet = alphabet)
+    val result = imageTransformer.toString
+
+    // Then
+    val expectedResult = Source.fromURL(getClass.getResource("/9x9black.txt"))(Codec.UTF8)
+    result shouldBe expectedResult.mkString
+  }
+
+
 }
