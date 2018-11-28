@@ -5,7 +5,7 @@ import java.awt.{Color, Font, Graphics}
 
 import com.sksamuel.scrimage.Image
 import com.sksamuel.scrimage.filter.GrayscaleFilter
-import wtf.shekels.alice.Util
+import wtf.shekels.alice.Util._
 
 class AsciiCharacter(val char: String, val font: String) {
 
@@ -30,7 +30,7 @@ class AsciiCharacter(val char: String, val font: String) {
 
   lazy val lightness: Double = {
     val pixels = renderedImage.filter(GrayscaleFilter).pixels
-    val values = pixels.map(p => 255 - Util.rgbToLightness(p.toColor))
+    val values = pixels.map(p => 255 - p.toColor.lightness)
     values.sum / values.length
   }
 

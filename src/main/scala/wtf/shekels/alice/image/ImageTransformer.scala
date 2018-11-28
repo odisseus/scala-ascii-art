@@ -3,7 +3,7 @@ package wtf.shekels.alice.image
 import java.io.File
 import com.sksamuel.scrimage.Image
 import com.sksamuel.scrimage.filter.{GrayscaleFilter, InvertFilter}
-import wtf.shekels.alice.Util
+import wtf.shekels.alice.Util.withLightness
 import wtf.shekels.alice.text.Alphabet
 
 /**
@@ -56,7 +56,7 @@ class ImageTransformer(val path: String,
     }
 
     // Get lightness values and offset with our modifier if we chose to use one
-    val pixelLightness: List[Double] = block.pixels.map(p => Util.rgbToLightness(p.toColor) + lightnessModifier).toList
+    val pixelLightness: List[Double] = block.pixels.map(p => p.toColor.lightness + lightnessModifier).toList
     val blockLightness = pixelLightness.sum / pixelLightness.length
     getChar(blockLightness)
   }
