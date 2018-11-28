@@ -24,35 +24,22 @@ class ImageTransformer(val path: String,
   val map: Map[Double, String] = alphabet.getMap
   val lowest: Double = map.keys.reduceLeft((l, r) => if (l < r) l else r)
 
-  /**
-    * Read image in and parse into usable format
-    * This has got to be horrifically inefficient, but in my testing it's been fast enough for me.
-    */
-  def readImage(): List[List[List[Double]]] = {
-    // Apply filters
-    val grayImage = Image.fromFile(file).filter(GrayscaleFilter)
-    // Invert image if specified, otherwise use the normal grayscale
-    val image: Image = if (invert) grayImage.filter(InvertFilter) else grayImage
-    // Get lightness values and offset with our modifier if we chose to use one
-    val pixelLightness: List[Double] = image.pixels.map(p => Util.rgbToLightness(p.toColor) + lightnessModifier).toList
-    // Group into rows
-    val rows: List[List[Double]] = pixelLightness.grouped(image.width).toList
-    // Cut the rows into slices the size of compressionFactor
-    val groupedRows: List[List[List[Double]]] = rows.map(_.grouped(compressionFactor).toList)
-    // Transpose and rearrange so all blocks are in order
-    val blocks: List[List[List[List[Double]]]] = groupedRows.transpose.map(_.grouped(compressionFactor).toList).transpose
-    // Compress according to compressionFactor
-    val compressedBlocks = blocks.map(lines => {
-      val coll = lines.grouped(image.width / compressionFactor).toList
-      coll.map(row => row.map(block => {
-        val values = block.flatten
-        values.sum / values.length
-      }))
-    })
-    compressedBlocks
+  private def applyFilters(block: Image): Image = {
+    val grayscale = block.filter(GrayscaleFilter)
+    if (invert) grayscale.filter(InvertFilter) else grayscale
   }
 
-  override def toString: String = {
+  private def toBlocks(source: Image, preferredBlockSize: Int): List[List[Image]] = {
+    Iterator.range(0, source.height, preferredBlockSize).map { y =>
+      Iterator.range(0, source.width, preferredBlockSize).map { x =>
+        val blockWidth = Math.min(source.width - x, preferredBlockSize)
+        val blockHeight = Math.min(source.height - y, preferredBlockSize)
+        Image.wrapAwt(source.awt.getSubimage(x, y, blockWidth, blockHeight))
+      }.toList
+    }.toList
+  }
+
+  private def toString(block: Image): String = {
     // Small function to get the closest character for the block's lightness value
     val getClosest = (n: Double, coll: List[Double]) => coll.minBy(v => Math.abs(v - n))
 
@@ -68,9 +55,16 @@ class ImageTransformer(val path: String,
       }
     }
 
-    readImage().map(row => {
-      row.flatMap(block => block.map(v => getChar(v))).mkString
-    }).mkString("\n")
+    // Get lightness values and offset with our modifier if we chose to use one
+    val pixelLightness: List[Double] = block.pixels.map(p => Util.rgbToLightness(p.toColor) + lightnessModifier).toList
+    val blockLightness = pixelLightness.sum / pixelLightness.length
+    getChar(blockLightness)
+  }
+
+  override def toString: String = {
+    val source = Image.fromFile(file)
+    val blocks = toBlocks(source, compressionFactor)
+    blocks.map(_.map(applyFilters).map(toString(_)).mkString).mkString("\n")
   }
 
   /**
