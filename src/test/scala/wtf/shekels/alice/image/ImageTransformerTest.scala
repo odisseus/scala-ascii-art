@@ -39,5 +39,20 @@ class ImageTransformerTest extends FlatSpec with Matchers {
     result shouldBe expectedResult.mkString
   }
 
+  it should "map white color to whitespace even if the alphabet contains very light characters" in {
+    // Given
+    val chars = ".`_#"
+    val alphabet = new Alphabet(chars, "Monospace")
+    val sourcePath = getClass.getResource("/stripes.png").getPath
+
+    // When
+    val imageTransformer = new ImageTransformer(path = sourcePath, compressionFactor = 8, alphabet = alphabet)
+    val result = imageTransformer.toString
+
+    // Then
+    val expectedResult = Source.fromURL(getClass.getResource("/stripes.txt"))(Codec.UTF8)
+    result shouldBe expectedResult.mkString
+  }
+
 
 }
