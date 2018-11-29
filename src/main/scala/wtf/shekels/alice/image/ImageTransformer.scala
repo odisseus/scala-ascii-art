@@ -21,7 +21,7 @@ class ImageTransformer(val path: String,
                        val invert: Boolean = true) {
 
   val file: File = new File(path)
-  val map: Map[Double, String] = alphabet.getMap
+  val map: Map[Double, Char] = alphabet.getMap
   val lowest: Double = map.keys.reduceLeft((l, r) => if (l < r) l else r)
 
   private def applyFilters(block: Image): Image = {
@@ -29,29 +29,28 @@ class ImageTransformer(val path: String,
     if (invert) grayscale.filter(InvertFilter) else grayscale
   }
 
-  private def toBlocks(source: Image, preferredBlockSize: Int): List[List[Image]] = {
-    Iterator.range(0, source.height, preferredBlockSize).map { y =>
-      Iterator.range(0, source.width, preferredBlockSize).map { x =>
-        val blockWidth = Math.min(source.width - x, preferredBlockSize)
-        val blockHeight = Math.min(source.height - y, preferredBlockSize)
+  private def toBlocks(source: Image, preferredBlockWidth: Int, preferredBlockHeight: Int): List[List[Image]] = {
+    Iterator.range(0, source.height, preferredBlockHeight).map { y =>
+      Iterator.range(0, source.width, preferredBlockWidth).map { x =>
+        val blockWidth = Math.min(source.width - x, preferredBlockWidth)
+        val blockHeight = Math.min(source.height - y, preferredBlockHeight)
         Image.wrapAwt(source.awt.getSubimage(x, y, blockWidth, blockHeight))
       }.toList
     }.toList
   }
 
-  private def toString(block: Image): String = {
+  private def toChar(block: Image): Char = {
     // Small function to get the closest character for the block's lightness value
     val getClosest = (n: Double, coll: List[Double]) => coll.minBy(v => Math.abs(v - n))
 
-    // Gets our character or potentially spaces. Characters are duplicated width-wise because text has a vertically biased aspect ratio.
     val getChar = (n: Double) => {
       if (n >= lowest) {
         map.get(getClosest(n, map.keys.toList)) match {
-          case Some(x) => x + x
-          case None => "  "
+          case Some(x) => x
+          case None => ' '
         }
       } else {
-        "  "
+        ' '
       }
     }
 
@@ -63,8 +62,9 @@ class ImageTransformer(val path: String,
 
   override def toString: String = {
     val source = Image.fromFile(file)
-    val blocks = toBlocks(source, compressionFactor)
-    blocks.map(_.map(applyFilters).map(toString(_)).mkString).mkString("\n")
+    val blockAspectRatio = 2
+    val blocks = toBlocks(source, compressionFactor / blockAspectRatio, compressionFactor)
+    blocks.map(_.map(applyFilters).map(toChar).mkString).mkString("", "\n", "\n")
   }
 
   /**

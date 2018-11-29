@@ -7,7 +7,7 @@ import com.sksamuel.scrimage.Image
 import com.sksamuel.scrimage.filter.GrayscaleFilter
 import wtf.shekels.alice.Util._
 
-class AsciiCharacter(val char: String, val font: String) {
+class AsciiCharacter(val char: Char, val font: String) {
 
   private lazy val renderedImage: Image = {
     // Create new grayscale image to write our character to
@@ -23,7 +23,7 @@ class AsciiCharacter(val char: String, val font: String) {
     // Write our character in the middle of the image in black
     graphics.setColor(Color.BLACK)
     graphics.setFont(new Font(font, Font.PLAIN, 75))
-    graphics.drawString(char, 0, 60)
+    graphics.drawString(char.toString, 0, 60)
 
     Image.wrapAwt(image)
   }
