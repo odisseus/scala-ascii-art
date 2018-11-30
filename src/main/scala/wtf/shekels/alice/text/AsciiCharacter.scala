@@ -1,35 +1,45 @@
 package wtf.shekels.alice.text
 
 import java.awt.image.BufferedImage
-import java.awt.{Color, Font, Graphics}
+import java.awt.{Color, Font, Graphics2D}
 
 import com.sksamuel.scrimage.Image
-import com.sksamuel.scrimage.filter.GrayscaleFilter
 import wtf.shekels.alice.Util._
 
-class AsciiCharacter(val char: Char, val font: String) {
+class AsciiCharacter(val char: Char, val fontName: String) {
 
-  private lazy val renderedImage: Image = {
+  private lazy val renderedImage: BufferedImage = {
+    val fontSize = 75
+
     // Create new grayscale image to write our character to
-    val image: BufferedImage = new BufferedImage(45, 70, BufferedImage.TYPE_BYTE_GRAY)
+    // Add generous margins to make sure that ascenders or descenders aren't clipped
+    val image: BufferedImage = new BufferedImage(fontSize * 5, fontSize * 5, BufferedImage.TYPE_BYTE_GRAY)
 
     // Get graphics context for the image so we can do stuff to it
-    val graphics: Graphics = image.getGraphics
+    val graphics: Graphics2D = image.createGraphics
 
     // Set a white background
     graphics.setColor(Color.WHITE)
-    graphics.fillRect(0, 0, 45, 75)
+    graphics.fillRect(0, 0, image.getWidth, image.getHeight)
 
     // Write our character in the middle of the image in black
     graphics.setColor(Color.BLACK)
-    graphics.setFont(new Font(font, Font.PLAIN, 75))
-    graphics.drawString(char.toString, 0, 60)
+    val fnt = new Font(fontName, Font.PLAIN, fontSize)
+    graphics.setFont(fnt)
+    graphics.drawString(char.toString, image.getWidth / 2, image.getHeight / 2)
 
-    Image.wrapAwt(image)
+    // Clip the part where the actual character has been rendered
+    val logicalCharacterBounds = fnt.createGlyphVector(graphics.getFontRenderContext, Array(char)).getLogicalBounds.getBounds
+    image.getSubimage(
+      logicalCharacterBounds.x + image.getWidth / 2,
+      logicalCharacterBounds.y + image.getHeight / 2,
+      logicalCharacterBounds.width,
+      logicalCharacterBounds.height
+    )
   }
 
   lazy val lightness: Double = {
-    val pixels = renderedImage.filter(GrayscaleFilter).pixels
+    val pixels = Image.wrapAwt(renderedImage).pixels
     val values = pixels.map(p => 255 - p.toColor.lightness)
     values.sum / values.length
   }
